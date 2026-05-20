@@ -130,6 +130,10 @@ def main():
         ed_dur_ref = 0
     else:
         ed_ref_idx, data_ed_ref, ed_start_ref, ed_dur_ref = ed_result
+        if ed_ref_idx == op_ref_idx and ed_start_ref < op_start_ref:
+            op_start_ref, op_dur_ref, ed_start_ref, ed_dur_ref = (
+                ed_start_ref, ed_dur_ref, op_start_ref, op_dur_ref
+            )
 
     print("\n[3/4] Обработка всего сезона...")
 

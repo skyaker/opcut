@@ -9,18 +9,20 @@ def extract_audio(video_path, output_name):
     audio_path = os.path.join(TEMP_DIR, f"{output_name}.wav")
     if os.path.exists(audio_path):
         return audio_path
-    try:
-        (
-            ffmpeg
-            .input(video_path)
-            .output(audio_path, acodec='pcm_s16le', ac=1, ar=SAMPLE_RATE)
-            .overwrite_output()
-            .run(capture_stdout=True, capture_stderr=True)
-        )
-        return audio_path
-    except ffmpeg.Error as e:
-        print(f"Ошибка FFmpeg при извлечении звука: {e.stderr.decode('utf-8')}")
-        return None
+    import subprocess
+    for audio_map in ['0:a:m:language:jpn', '0:a:0']:
+        try:
+            subprocess.run([
+                'ffmpeg', '-y', '-i', video_path,
+                '-map', audio_map,
+                '-acodec', 'pcm_s16le', '-ac', '1', '-ar', str(SAMPLE_RATE),
+                audio_path
+            ], check=True, capture_output=True)
+            return audio_path
+        except subprocess.CalledProcessError:
+            continue
+    print(f"Ошибка FFmpeg: не удалось извлечь аудио из {video_path}")
+    return None
 
 
 def load_audio_data(audio_path):
@@ -291,6 +293,12 @@ def find_segments_in_pair(data_a, data_b, min_duration_sec=30,
 
     if search_only_ending:
         return None, None, 0, ed_a, ed_b, ed_dur_found
+
+    if op_a is not None and ed_a is not None and ed_a < op_a:
+        print("  [DBG] Сегменты переставлены: эндинг оказался раньше опенинга, меняем местами.")
+        op_a, op_b, op_dur_found, ed_a, ed_b, ed_dur_found = (
+            ed_a, ed_b, ed_dur_found, op_a, op_b, op_dur_found
+        )
 
     return op_a, op_b, op_dur_found, ed_a, ed_b, ed_dur_found
 
